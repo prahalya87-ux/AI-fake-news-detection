@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>AI Fake News Detector</title>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    font-family:Arial;
+    background:#0f172a;
+    color:white;
+}
+
+.container{
+    width:90%;
+    max-width:1000px;
+    margin:auto;
+    padding:20px;
+}
+
+h1{
+    text-align:center;
+    margin-bottom:20px;
+    color:#38bdf8;
+    font-size:40px;
+}
+
+.tabs{
+    display:flex;
+    gap:10px;
+    margin-bottom:20px;
+}
+
+.tabs button{
+    flex:1;
+    padding:15px;
+    border:none;
+    border-radius:12px;
+    background:#1e293b;
+    color:white;
+    cursor:pointer;
+    font-size:16px;
+    transition:0.3s;
+}
+
+.tabs button:hover{
+    background:#2563eb;
+}
+
+.tab{
+    background:#111827;
+    padding:20px;
+    border-radius:15px;
+}
+
+.hidden{
+    display:none;
+}
+
+input, textarea{
+    width:100%;
+    padding:15px;
+    border:none;
+    border-radius:12px;
+    margin-bottom:15px;
+    background:#1e293b;
+    color:white;
+    font-size:16px;
+}
+
+textarea{
+    height:150px;
+    resize:none;
+}
+
+.main-btn{
+    width:100%;
+    padding:15px;
+    border:none;
+    border-radius:12px;
+    background:#2563eb;
+    color:white;
+    font-size:18px;
+    cursor:pointer;
+}
+
+.main-btn:hover{
+    background:#1d4ed8;
+}
+
+.result-card{
+    margin-top:25px;
+    background:#111827;
+    padding:20px;
+    border-radius:15px;
+}
+
+.real{
+    color:#22c55e;
+}
+
+.fake{
+    color:#ef4444;
+}
+
+.confidence{
+    margin:10px 0;
+    font-size:18px;
+}
+
+.bar{
+    width:100%;
+    height:20px;
+    background:#1e293b;
+    border-radius:10px;
+    overflow:hidden;
+    margin-bottom:20px;
+}
+
+.fill{
+    height:100%;
+    background:#2563eb;
+}
+
+.summary{
+    margin-top:10px;
+    line-height:1.6;
+}
+
+.news-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+    gap:15px;
+    margin-top:20px;
+}
+
+.news-card{
+    background:#1e293b;
+    border-radius:15px;
+    overflow:hidden;
+    padding-bottom:15px;
+}
+
+.news-card img{
+    width:100%;
+    height:180px;
+    object-fit:cover;
+}
+
+.news-content{
+    padding:15px;
+}
+
+.news-content h3{
+    margin-bottom:10px;
+    font-size:18px;
+}
+
+.news-content a{
+    color:#38bdf8;
+    text-decoration:none;
+}
+
+.loading{
+    text-align:center;
+    margin-top:20px;
+    font-size:20px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>AI Fake News Detector</h1>
+
+<div class="tabs">
+
+<button onclick="showTab('urlTab')">URL</button>
+<button onclick="showTab('textTab')">TEXT</button>
+<button onclick="showTab('imageTab')">IMAGE</button>
+
+</div>
+
+<!-- URL TAB -->
+<div id="urlTab" class="tab">
+
+<input type="text" id="urlInput" placeholder="Paste News URL or YouTube Link">
+
+<button class="main-btn" onclick="analyzeURL()">
+Analyze News
+</button>
+
+</div>
+
+<!-- TEXT TAB -->
+<div id="textTab" class="tab hidden">
+
+<textarea id="textInput" placeholder="Type any news here"></textarea>
+
+<button class="main-btn" onclick="analyzeText()">
+Analyze News
+</button>
+
+</div>
+
+<!-- IMAGE TAB -->
+<div id="imageTab" class="tab hidden">
+
+<input type="file" id="imageInput">
+
+<button class="main-btn" onclick="analyzeImage()">
+Analyze Image
+</button>
+
+</div>
+
+<div id="result"></div>
+
+</div>
+
+<script>
+
+function showTab(tab){
+
+document.querySelectorAll(".tab").forEach(t=>{
+    t.classList.add("hidden")
+})
+
+document.getElementById(tab).classList.remove("hidden")
+
+}
+
+function renderResult(data){
+
+if(data.error){
+
+document.getElementById("result").innerHTML =
+`<div class="result-card">
+<h2 style="color:red;">${data.error}</h2>
+</div>`
+
+return
+}
+
+let cls = data.verdict.includes("REAL") ? "real" : "fake"
+
+let html = `
+
+<div class="result-card">
+
+<h2 class="${cls}">
+${data.verdict}
+</h2>
+
+<div class="confidence">
+Confidence: ${data.score}%
+</div>
+
+<div class="bar">
+<div class="fill" style="width:${data.score}%"></div>
+</div>
+
+<h2>${data.title}</h2>
+
+<p class="summary">
+${data.summary}
+</p>
+
+<h2 style="margin-top:20px;">
+Related News
+</h2>
+
+<div class="news-grid">
+`
+
+data.related_news.forEach(news=>{
+
+html += `
+
+<div class="news-card">
+
+<img src="https://source.unsplash.com/600x400/?news" />
+
+<div class="news-content">
+
+<h3>${news.title}</h3>
+
+<a href="${news.link}" target="_blank">
+Read Full Article →
+</a>
+
+</div>
+
+</div>
+`
+})
+
+html += `
+</div>
+</div>
+`
+
+document.getElementById("result").innerHTML = html
+
+}
+
+async function analyzeURL(){
+
+let url = document.getElementById("urlInput").value
+
+document.getElementById("result").innerHTML =
+`<div class="loading">Analyzing...</div>`
+
+let response = await fetch("/analyze_url",{
+    method:"POST",
+    headers:{
+        "Content-Type":"application/json"
+    },
+    body:JSON.stringify({url:url})
+})
+
+let data = await response.json()
+
+renderResult(data)
+
+}
+
+async function analyzeText(){
+
+let text = document.getElementById("textInput").value
+
+document.getElementById("result").innerHTML =
+`<div class="loading">Analyzing...</div>`
+
+let response = await fetch("/analyze_text",{
+    method:"POST",
+    headers:{
+        "Content-Type":"application/json"
+    },
+    body:JSON.stringify({text:text})
+})
+
+let data = await response.json()
+
+renderResult(data)
+
+}
+
+async function analyzeImage(){
+
+let file = document.getElementById("imageInput").files[0]
+
+let formData = new FormData()
+
+formData.append("image",file)
+
+document.getElementById("result").innerHTML =
+`<div class="loading">Analyzing Image...</div>`
+
+let response = await fetch("/analyze_image",{
+    method:"POST",
+    body:formData
+})
+
+let data = await response.json()
+
+renderResult(data)
+
+}
+
+</script>
+
+</body>
+</html>

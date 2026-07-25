@@ -1,0 +1,6 @@
+flask
+flask-cors
+feedparser
+requests
+gunicorn
+newspaper3k
